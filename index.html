@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPN Status Matrix</title>
+    <style>
+        /* Immersive Cyberpunk Neon Variables */
+        :root {
+            --bg-dark: #06080a;
+            --panel-bg: #11141a;
+            --panel-bg-hover: #171b24;
+            --neon-blue: #00f0ff;
+            --neon-blue-glow: rgba(0, 240, 255, 0.35);
+            --neon-green: #39ff14;
+            --neon-green-glow: rgba(57, 255, 20, 0.4);
+            --neon-red: #ff3131;
+            --neon-red-glow: rgba(255, 49, 49, 0.4);
+            --text-white: #ffffff;
+            --text-grey: #707e94;
+            --border-grey: #1f2633;
+            --accent-purple: #9d4edd;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 240, 255, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(157, 78, 221, 0.03) 0%, transparent 40%);
+        }
+
+        /* Scanline Overlay for Cyber-Grid Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 99999;
+            opacity: 0.4;
+            pointer-events: none;
+            background-size: 100% 4px, 6px 100%;
+        }
+
+        /* Top Navigation Header & Sticky Compare Panel */
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 3.5rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fff 30%, var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px var(--neon-blue-glow));
+            animation: titlePulse 3s infinite ease-in-out;
+        }
+
+        header p {
+            color: var(--text-grey);
+            font-size: 0.95rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 0.5rem;
+        }
+
+        /* Floating Action/Comparison Utility Bar */
+        .utility-bar {
+            max-width: 1400px;
+            margin: 0 auto 2rem auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(17, 20, 26, 0.8);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-grey);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .compare-counter {
+            font-size: 0.9rem;
+            color: var(--text-grey);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .compare-counter strong {
+            color: var(--neon-blue);
+            text-shadow: 0 0 8px var(--neon-blue-glow);
+        }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 0.6rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        .btn:hover:not(:disabled) {
+            background: var(--neon-blue);
+            color: var(--bg-dark);
+            box-shadow: 0 0 20px var(--neon-blue-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            border-color: var(--border-grey);
+            color: var(--text-grey);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* Absolute Square Dashboard Mesh Grid */
+        .grid-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.75rem;
+            padding-bottom: 5rem;
+        }
+
+        /* Advanced Card Architecture & Multi-axis Transitions */
+        .vpn-box {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-grey);
+            border-radius: 14px;
+            aspect-ratio: 1 / 1;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), 
+                        border-color 0.3s ease, 
+                        box-shadow 0.4s ease, 
+                        background-color 0.3s ease;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .vpn-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.03), transparent);
+            transform: skewX(-25deg);
+            transition: 0.75s;
+        }
+
+        /* Hover Framework */
+        .vpn-box:hover {
+            transform: translateY(-8px) scale(1.015);
+            background-color: var(--panel-bg-hover);
+            border-color: var(--neon-blue);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+
+        .vpn-box:hover::before {
+            left: 150%;
+        }
+
+        /* Checkbox Selection Override for Comparison Engine */
+        .compare-selector {
+            position: absolute;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--neon-blue);
+            z-index: 10;
+        }
+
+        /* Node Metadata Sub-elements */
+        .box-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .title-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-width: 65%;
+        }
+
+        .vpn-name {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sub-type {
+            font-size: 0.7rem;
+            color: var(--text-grey);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* Status Diagnostics System */
+        .status-badge {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 900;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 1px;
+        }
+
+        .vpn-box.online .status-badge {
+            color: var(--neon-green);
+            background: rgba(57, 255, 20, 0.06);
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
+            animation: diagnosticBlinkGreen 2.5s infinite alternate;
+        }
+
+        .vpn-box.offline .status-badge {
+            color: var(--neon-red);
+            background: rgba(255, 49, 49, 0.06);
+            border: 1px solid var(--neon-red);
+            box-shadow: 0 0 10px rgba(255, 49, 49, 0.2);
+            animation: diagnosticBlinkRed 2.5s infinite alternate;
+        }
+
+        /* Metrics Grid Architecture */
+        .box-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .metric-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-grey);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-info span:last-child {
+            color: var(--text-white);
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Progress Framework Components */
+        .progress-bar-bg {
+            background-color: #1a1f29;
+            height: 5px;
+            border-radius: 10px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #0072ff, var(--neon-blue));
+            box-shadow: 0 0 8px var(--neon-blue-glow);
+            width: 0%;
+            transition: width 1.8s cubic-bezier(0.1, 1, 0.1, 1);
+        }
+
+        .vpn-box.offline .progress-fill {
+            background: #2b3342 !important;
+            box-shadow: none !important;
+        }
+
+        /* Cinematic Custom Variable Highlight Override */
+        .vpn-box[data-name="CinemaVPN"] {
+            border-color: rgba(157, 78, 221, 0.3);
+        }
+        .vpn-box[data-name="CinemaVPN"]:hover {
+            border-color: var(--accent-purple);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(157, 78, 221, 0.3);
+        }
+        .vpn-box[data-name="CinemaVPN"] .progress-fill {
+            background: linear-gradient(90deg, #7b2cbf, var(--accent-purple));
+            box-shadow: 0 0 8px rgba(157, 78, 221, 0.5);
+        }
+
+        /* Deep Dive Modal System Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(4, 5, 7, 0.85);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-window {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-grey);
+            width: 90%;
+            max-width: 650px;
+            border-radius: 16px;
+            padding: 2.5rem;
+            position: relative;
+            transform: scale(0.85) translateY(30px);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+
+        .modal-overlay.active .modal-window {
+            transform: scale(1) translateY(0);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.15), 0 25px 60px rgba(0,0,0,0.8);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.25rem; right: 1.25rem;
+            background: transparent;
+            border: none;
+            color: var(--text-grey);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover { color: var(--neon-red); }
+
+        .modal-header-block {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-grey);
+            padding-bottom: 1rem;
+        }
+
+        .modal-body-content p {
+            color: var(--text-grey);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Interactive Underlined External Anchor Styling */
+        .modal-link-container {
+            margin-top: 2rem;
+        }
+
+        .official-link {
+            color: var(--text-white);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            position: relative;
+            padding-bottom: 4px;
+        }
+
+        .official-link::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: 0;
+            width: 100%; height: 2px;
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 8px var(--neon-blue);
+            transform: scaleX(1);
+            transition: transform 0.3s ease;
+        }
+
+        .official-link:hover::after {
+            transform: scaleX(1.05);
+            background-color: var(--text-white);
+            box-shadow: 0 0 12px #fff;
+        }
+
+        /* Comparison Overlay System Dashboard */
+        .comparison-window {
+            max-width: 900px !important;
+        }
+
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .compare-table th, .compare-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-grey);
+        }
+
+        .compare-table th {
+            color: var(--text-grey);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        .compare-table td {
+            font-weight: 600;
+        }
+
+        /* Animation Framework Core Keyframes */
+        @keyframes titlePulse {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.2)); }
+            50% { filter: drop-shadow(0 0 25px rgba(0, 240, 255, 0.45)); }
+        }
+
+        @keyframes diagnosticBlinkGreen {
+            0%, 100% { box-shadow: 0 0 8px rgba(57, 255, 20, 0.15); border-color: rgba(57, 255, 20, 0.4); }
+            50% { box-shadow: 0 0 15px rgba(57, 255, 20, 0.4); border-color: var(--neon-green); }
+        }
+
+        @keyframes diagnosticBlinkRed {
+            0%, 100% { box-shadow: 0 0 8px rgba(255, 49, 49, 0.15); border-color: rgba(255, 49, 49, 0.4); }
+            50% { box-shadow: 0 0 15px rgba(255, 49, 49, 0.4); border-color: var(--neon-red); }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            header h1 { font-size: 2.2rem; }
+            .utility-bar { flex-direction: column; gap: 1rem; text-align: center; }
+            .grid-container { gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>VPN Status</h1>
+        <p>Dynamic Encryption Network Mesh Topology</p>
+    </header>
+
+    <div class="utility-bar">
+        <div class="compare-counter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+            <span>Selected nodes for diagnostics: <strong id="selectedCount">0</strong> / 3</span>
+        </div>
+        <button class="btn" id="compareBtn" disabled onclick="openComparisonModal()">Execute Comparison</button>
+    </div>
+
+    <div class="grid-container" id="matrixContainer">
+        <!-- Infrastructure grid populated dynamically via JS -->
+    </div>
+
+    <!-- Master Info Pop-up Modal Component -->
+    <div class="modal-overlay" id="infoModal" onclick="closeModal(event)">
+        <div class="modal-window" id="modalWindow">
+            <button class="modal-close" onclick="closeModal(event, forced=true)">&times;</button>
+            <div id="modalDynamicContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Core Static Framework Specifications Database
+        const baseVpnData = [
+            { name: "CinemaVPN", type: "Free Trial / Premium", url: "https://oxocareplat.github.io/cinemaVPN/", desc: "Next-generation streaming optimized perimeter layer network. Features ultra-low virtualization overhead and a highly structured modular design.", staticOverride: { status: "online", level: 95, privacy: 85, speed: 95 } },
+            { name: "NordVPN", type: "Subscription Required", url: "https://nordvpn.com/", desc: "Industry benchmark utilizing advanced custom twin-tunnel engineering protocols for sustained deep throughput optimization." },
+            { name: "ExpressVPN", type: "Subscription Required", url: "https://expressvpn.com/", desc: "High-tier global orchestration infrastructure providing maximum cross-platform compatibility layers." },
+            { name: "Surfshark", type: "Subscription Required", url: "https://surfshark.com/", desc: "Distributed structural architecture configuration engineered for endless concurrent perimeter sessions." },
+            { name: "Proton VPN", type: "Free / Premium Tier", url: "https://protonvpn.com/", desc: "High-grade Swiss operational isolation grid utilizing verified open-source compliance frameworks." },
+            { name: "CyberGhost", type: "Subscription Required", url: "https://cyberghostvpn.com/", desc: "Pre-routed profiles mapped automatically to localized container arrays optimized for data payloads." },
+            { name: "Private Internet Access", type: "Subscription Required", url: "https://privateinternetaccess.com/", desc: "Highly customizable bare-metal network setup with deep packet rule-manipulation frameworks." },
+            { name: "Mullvad", type: "Subscription Required", url: "https://mullvad.net/", desc: "Zero-credential authorization matrices focused squarely on metadata prevention strategies." },
+            { name: "IVPN", type: "Subscription Required", url: "https://ivpn.net/", desc: "Strict structural isolation multi-hop arrays avoiding standard tracking identification records entirely." },
+            { name: "Windscribe", type: "Free / Premium Tier", url: "https://windscribe.com/", desc: "Flexible runtime script controls and configurable content filtering options built right into the endpoint.", staticOverride: { status: "offline", level: 0, privacy: 0, speed: 0 } },
+            { name: "TunnelBear", type: "Free / Premium Tier", url: "https://tunnelbear.com/", desc: "Simplified structural layout maps designed for casual client encapsulation and obfuscation layers.", staticOverride: { status: "offline", level: 0, privacy: 0, speed: 0 } },
+            { name: "Hide.me", type: "Free / Premium Tier", url: "https://hide.me/", desc: "Advanced fallback encryption fallbacks that maintain safe telemetry pipes even during regional disruptions." },
+            { name: "PureVPN", type: "Subscription Required", url: "https://purevpn.com/", desc: "Widely scalable geographic platform configuration providing dynamic quantum-resistant safety elements." },
+            { name: "VyprVPN", type: "Subscription Required", url: "https://vyprvpn.com/", desc: "Proprietary payload scrubbing engines built explicitly to bypass restrictive structural firewalls." },
+            { name: "Hotspot Shield", type: "Free / Premium Tier", url: "https://hotspotshield.com/", desc: "Custom low-latency transport protocols optimized for high-capacity asynchronous asset streams." },
+            { name: "OVPN", type: "Subscription Required", url: "https://ovpn.com/", desc: "Fully isolated RAM-only server components engineered to guarantee absolute storage volatility." }
+        ];
+
+        let selectedVpns = [];
+        const runtimeDatabase = {};
+
+        // Engine constructor creating live states and structure bindings
+        function initDashboard() {
+            const container = document.getElementById('matrixContainer');
+            
+            baseVpnData.forEach(vpn => {
+                let stats;
+                if(vpn.staticOverride) {
+                    stats = { ...vpn.staticOverride };
+                } else {
+                    stats = {
+                        status: 'online',
+                        level: Math.floor(Math.random() * 15) + 83,
+                        privacy: Math.floor(Math.random() * 10) + 89,
+                        speed: Math.floor(Math.random() * 15) + 80
+                    };
+                }
+
+                // Append parsed information into temporary execution runtime state
+                runtimeDatabase[vpn.name] = { ...vpn, ...stats };
+
+                const card = document.createElement('div');
+                card.className = `vpn-box ${stats.status}`;
+                card.setAttribute('data-name', vpn.name);
+                
+                // Fixed Event Delegation: Blocks checking from firing zoomed container
+                card.onclick = (e) => {
+                    if(e.target.className !== 'compare-selector') {
+                        openDetailModal(vpn.name);
+                    }
+                };
+                
+                card.innerHTML = `
+                    <div class="box-header">
+                        <div class="title-wrapper">
+                            <span class="vpn-name">${vpn.name}</span>
+                            <span class="sub-type">${vpn.type}</span>
+                        </div>
+                        <div class="status-badge">${stats.status}</div>
+                    </div>
+                    
+                    <div class="box-metrics">
+                        <div class="metric-row">
+                            <div class="metric-info"><span>VPN Level</span><span>${stats.level}%</span></div>
+                            <div class="progress-bar-bg"><div class="progress-fill" data-value="${stats.level}%"></div></div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-info"><span>Privacy</span><span>${stats.privacy}%</span></div>
+                            <div class="progress-bar-bg"><div class="progress-fill" data-value="${stats.privacy}%"></div></div>
+                        </div>
+                        <div class="metric-row">
+                            <div class="metric-info"><span>Speed</span><span>${stats.speed}%</span></div>
+                            <div class="progress-bar-bg"><div class="progress-fill" data-value="${stats.speed}%"></div></div>
+                        </div>
+                    </div>
+                    
+                    <input type="checkbox" class="compare-selector" value="${vpn.name}" onchange="handleSelection(this, event)">
+                `;
+                
+                container.appendChild(card);
+            });
+
+            // Delayed rendering sequence kicks off CSS horizontal width transition engines safely
+            setTimeout(() => {
+                document.querySelectorAll('.progress-fill').forEach(fill => {
+                    fill.style.width = fill.getAttribute('data-value');
+                });
+            }, 100);
+        }
+
+        // Fixed Selection Controller logic safely mapping values
+        function handleSelection(checkbox, event) {
+            event.stopPropagation();
+            const name = checkbox.value;
+            
+            if(checkbox.checked) {
+                if(selectedVpns.length >= 3) {
+                    checkbox.checked = false;
+                    alert("Maximum comparison architecture reached. Deselect a current target node first.");
+                    return;
+                }
+                selectedVpns.push(name);
+            } else {
+                selectedVpns = selectedVpns.filter(item => item !== name);
+            }
+            
+            // Updates counter and verification button disable parameters dynamically
+            document.getElementById('selectedCount').innerText = selectedVpns.length;
+            document.getElementById('compareBtn').disabled = selectedVpns.length < 2;
+        }
+
+        // Populates interactive expanded detail layout dynamically inside standard structural modal window
+        function openDetailModal(name) {
+            const data = runtimeDatabase[name];
+            const content = document.getElementById('modalDynamicContent');
+            document.getElementById('modalWindow').className = "modal-window";
+            
+            content.innerHTML = `
+                <div class="modal-header-block">
+                    <div>
+                        <h2>${data.name}</h2>
+                        <span style="color: var(--text-grey); font-size:0.8rem; text-transform:uppercase; font-weight:700;">${data.type}</span>
+                    </div>
+                    <div class="status-badge" style="border: 1px solid ${data.status === 'online'?'var(--neon-green)':'var(--neon-red)'}; color: ${data.status === 'online'?'var(--neon-green)':'var(--neon-red)'}; padding: 4px 12px; border-radius:4px;">${data.status}</div>
+                </div>
+                <div class="modal-body-content">
+                    <p>${data.desc}</p>
+                    <div class="box-metrics" style="margin: 2rem 0;">
+                        <div class="metric-row">
+                            <div class="metric-info"><span>Telemetry Integrity Link Level</span><span>${data.level}%</span></div>
+                            <div class="progress-bar-bg"><div class="progress-fill" style="width: ${data.level}%"></div></div>
+                        </div>
+                        <div class="metric-row" style="margin-top:1rem;">
+                            <div class="metric-info"><span>Data Privacy Encryption Rating</span><span>${data.privacy}%</span></div>
+                            <div class="progress-bar-bg"><div class="progress-fill" style="width: ${data.privacy}%"></div></div>
+                        </div>
+                        <div class="metric-row" style="margin-top:1rem;">
+                            <div class="metric-info"><span>Bandwidth Flow Rate Index</span><span>${data.speed}%</span></div>
+                            <div class="progress-bar-bg"><div class="progress-fill" style="width: ${data.speed}%"></div></div>
+                        </div>
+                    </div>
+                    <div class="modal-link-container">
+                        <a href="${data.url}" target="_blank" class="official-link">Access Official Infrastructure Matrix Site</a>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('infoModal').classList.add('active');
+        }
+
+        // Comparison parsing layout rendering structure inside modal viewport engine
+        function openComparisonModal() {
+            const content = document.getElementById('modalDynamicContent');
+            document.getElementById('modalWindow').className = "modal-window comparison-window";
+            
+            let tableRows = '';
+            selectedVpns.forEach(name => {
+                const node = runtimeDatabase[name];
+                tableRows += `
+                    <tr>
+                        <td style="color:var(--neon-blue); font-weight:700;">${node.name}</td>
+                        <td style="color:${node.status==='online'?'var(--neon-green)':'var(--neon-red)'}">${node.status.toUpperCase()}</td>
+                        <td>${node.level}%</td>
+                        <td>${node.privacy}%</td>
+                        <td>${node.speed}%</td>
+                        <td style="font-size:0.8rem; color:var(--text-grey);">${node.type}</td>
+                    </tr>
+                `;
+            });
+
+            content.innerHTML = `
+                <div class="modal-header-block">
+                    <div>
+                        <h2>Node Diagnostics Matrix Comparison</h2>
+                        <span style="color: var(--text-grey); font-size:0.8rem;">Multi-instance Parameter Readout Grid</span>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="compare-table">
+                        <thead>
+                            <tr>
+                                <th>VPN Name</th>
+                                <th>Status</th>
+                                <th>Level</th>
+                                <th>Privacy</th>
+                                <th>Speed</th>
+                                <th>Subscription model</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            document.getElementById('infoModal').classList.add('active');
+        }
+
+        function closeModal(event, forced = false) {
+            if(forced || event.target.id === 'infoModal') {
+                document.getElementById('infoModal').classList.remove('active');
+            }
+        }
+
+        // Initialize execution on runtime ready states
+        window.onload = initDashboard;
+    </script>
+</body>
+</html>
